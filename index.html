@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GIF Tier List</title>
+<style>
+  :root {
+    --bg: #f4f4f5; --panel: #ffffff; --row: #fafafa; --text: #18181b; --muted: #71717a;
+    --border: #e4e4e7; --accent: #2563eb; --accent-text: #ffffff; --link: #2563eb; --warn: #d97706;
+    --item: 100px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111113; --panel: #1b1b1f; --row: #232328; --text: #f4f4f5; --muted: #a1a1aa;
+      --border: #2f2f36; --accent: #3b82f6; --accent-text: #ffffff; --link: #7ab0ff; --warn: #f59e0b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111113; --panel: #1b1b1f; --row: #232328; --text: #f4f4f5; --muted: #a1a1aa;
+    --border: #2f2f36; --accent: #3b82f6; --accent-text: #ffffff; --link: #7ab0ff; --warn: #f59e0b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 16px 16px 110px; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  h1 { margin: 0; font-size: 24px; outline: none; border-radius: 6px; padding: 2px 6px; margin-left: -6px; }
+  h1:focus { background: var(--panel); box-shadow: 0 0 0 2px var(--accent); }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .toolbar label.size { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+  button {
+    padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font: inherit;
+    font-weight: 600; background: var(--panel); color: var(--text); cursor: pointer;
+  }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  button:hover { filter: brightness(1.05); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
+  select, input[type="search"], input[type="url"] {
+    padding: 7px 9px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg); color: var(--text); font: inherit; min-width: 0;
+  }
+  .hint { color: var(--muted); margin: 4px 0 0; }
+  code { background: var(--row); padding: 1px 5px; border-radius: 4px; }
+
+  /* tiers */
+  #tiers { margin-top: 16px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--panel); }
+  .tier { display: flex; min-height: calc(var(--item) + 8px); border-top: 1px solid var(--border); }
+  .tier:first-child { border-top: 0; }
+  .tier-label {
+    width: 110px; flex: none; display: flex; align-items: center; justify-content: center;
+    padding: 8px; color: #111; font-weight: 700; font-size: 20px; text-align: center;
+    word-break: break-word; outline: none;
+  }
+  .tier-label:focus { box-shadow: inset 0 0 0 3px rgba(0,0,0,.4); }
+  .tier .dropzone { flex: 1; background: var(--row); }
+  .tier-tools {
+    flex: none; display: grid; grid-template-columns: 1fr 1fr; align-content: center; gap: 4px;
+    padding: 6px; background: var(--panel); border-left: 1px solid var(--border);
+  }
+  .tier-tools button { padding: 3px 6px; font-size: 12px; min-width: 28px; }
+  .tier-tools input[type="color"] {
+    width: 28px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 6px;
+    background: none; cursor: pointer;
+  }
+  .dropzone {
+    display: flex; flex-wrap: wrap; align-content: flex-start; gap: 4px; padding: 4px;
+    min-height: calc(var(--item) + 8px);
+  }
+  .item {
+    width: var(--item); height: var(--item); border-radius: 4px; overflow: hidden; flex: none;
+    cursor: grab; touch-action: none; user-select: none; background: #000; position: relative;
+  }
+  .item img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+  .item.placeholder { opacity: .3; }
+  .ghost {
+    position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; cursor: grabbing;
+    box-shadow: 0 8px 24px rgba(0,0,0,.45); opacity: .95;
+  }
+  .dropzone.over { box-shadow: inset 0 0 0 2px var(--accent); }
+  .src-badge {
+    position: absolute; top: 3px; right: 3px; z-index: 1;
+    width: clamp(18px, calc(var(--item) * .22), 28px); height: clamp(18px, calc(var(--item) * .22), 28px);
+    border-radius: 50%; background: rgba(0,0,0,.7); color: #fff; display: grid; place-items: center;
+    cursor: pointer; opacity: .85;
+  }
+  .src-badge:hover { opacity: 1; background: var(--accent); }
+  .src-badge svg { width: 60%; height: 60%; }
+
+  #poolWrap { margin-top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+  #poolWrap h3 { margin: 0 0 6px; font-size: 14px; color: var(--muted); font-weight: 600; }
+
+  #empty { margin-top: 16px; background: var(--panel); border: 1px dashed var(--border); border-radius: 10px; padding: 24px; }
+  #empty ol { margin: 8px 0 14px; padding-left: 20px; }
+
+  /* settings */
+  #settings {
+    width: min(1100px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 0;
+    border: 1px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--text);
+  }
+  #settings::backdrop { background: rgba(0,0,0,.6); }
+  .set-head {
+    position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; background: var(--panel); border-bottom: 1px solid var(--border);
+  }
+  .set-head h2 { margin: 0; font-size: 18px; }
+  .set-body { padding: 16px; display: flex; flex-direction: column; gap: 22px; }
+  .set-body h3 { margin: 0 0 4px; font-size: 15px; }
+  .set-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
+  .set-row label { display: flex; align-items: center; gap: 6px; }
+  .link-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;
+  }
+  .link-card {
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px; background: var(--row);
+    display: flex; flex-direction: column; gap: 6px; min-width: 0;
+  }
+  .link-card.missing { border-color: var(--warn); }
+  .link-card .thumb { aspect-ratio: 1; border-radius: 4px; overflow: hidden; background: #000; cursor: zoom-in; position: relative; }
+  .link-card .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .link-card .name { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .link-card input { width: 100%; font-size: 13px; padding: 6px 8px; }
+  .link-card .status { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .link-card .status a { color: var(--link); text-decoration: none; font-weight: 600; }
+
+  /* viewer */
+  #viewer { border: 0; padding: 0; background: transparent; max-width: 100vw; max-height: 100vh; width: 100vw; height: 100vh; margin: 0; }
+  #viewer::backdrop { background: rgba(0,0,0,.88); }
+  .viewer-inner {
+    width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 12px; padding: 16px; color: #fff;
+  }
+  .viewer-inner img {
+    max-width: 100%; max-height: calc(100vh - 140px); min-width: min(320px, 100%);
+    object-fit: contain; border-radius: 6px; background: #000;
+  }
+  .viewer-bar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: center; text-align: center; }
+  .viewer-bar strong { font-size: 16px; }
+  #viewer a { color: #8cc0ff; font-weight: 600; text-decoration: none; }
+  #viewer a:hover { text-decoration: underline; }
+  .viewer-bar span { color: #aaa; }
+  .vbtn { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,.12); color: #fff; border: 0; font-size: 22px; padding: 10px 14px; }
+  #vPrev { left: 12px; } #vNext { right: 12px; }
+  #vClose { position: fixed; top: 12px; right: 12px; background: rgba(255,255,255,.12); color: #fff; border: 0; }
+
+  /* progress */
+  #busy {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 2000;
+    width: min(460px, calc(100vw - 32px)); background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.35); display: none;
+  }
+  #busy progress { width: 100%; margin-top: 6px; }
+  @media (max-width: 640px) { .tier-label { width: 70px; font-size: 16px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="title" contenteditable="true" spellcheck="false">GIF Tier List</h1>
+      <p class="hint">Drag items into tiers. Hover to play, click to see it full size. <span aria-hidden="true">🔗</span> opens the source.</p>
+    </div>
+    <div class="toolbar">
+      <label class="size">Size <input type="range" id="size" min="50" max="200" step="5" value="100"></label>
+      <button id="addTier">+ Tier</button>
+      <button id="reset">Reset</button>
+      <button id="openSettings" class="primary">⚙ Settings</button>
+    </div>
+  </header>
+
+  <div id="empty" hidden>
+    <strong>Nothing loaded yet.</strong>
+    <ol>
+      <li>Put your GIFs, images and videos in a folder (for example the <code>media</code> folder next to this page).</li>
+      <li>Click <b>Load folder</b> and pick it. Videos are converted to GIFs automatically.</li>
+      <li>Or, if someone sent you a pack, click <b>Import pack</b>.</li>
+    </ol>
+    <div class="toolbar">
+      <button class="primary" data-action="loadFolder">Load folder</button>
+      <button data-action="importPack">Import pack</button>
+    </div>
+  </div>
+
+  <div id="tiers"></div>
+
+  <div id="poolWrap">
+    <h3>Unranked <span id="poolCount"></span></h3>
+    <div id="pool" class="dropzone"></div>
+  </div>
+</div>
+
+<dialog id="settings">
+  <div class="set-head">
+    <h2>Settings</h2>
+    <button id="closeSettings">Close ✕</button>
+  </div>
+  <div class="set-body">
+    <section>
+      <h3>Library</h3>
+      <p class="hint" id="libInfo"></p>
+      <div class="set-row">
+        <button class="primary" data-action="loadFolder">Load folder</button>
+        <button id="rescan" hidden>Rescan last folder</button>
+        <button data-action="importPack">Import pack</button>
+        <label>Video → GIF quality
+          <select id="videoQuality">
+            <option value="small">Small (240px, 10 fps)</option>
+            <option value="medium">Medium (360px, 12 fps)</option>
+            <option value="large">Large (480px, 16 fps)</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint">Supports any image or video your browser can open (GIF, PNG, JPG, WebP, AVIF, BMP, SVG, MP4, WebM, MOV…). Videos are converted to GIFs (max 30 seconds). A <code>sources.txt</code> in the folder (<code>filename | link</code> per line) fills in links automatically.</p>
+    </section>
+
+    <section>
+      <h3>Export pack</h3>
+      <p class="hint">Saves every item (with links and tiers) into one <code>pack.js</code> file. Send it to someone to use with <b>Import pack</b>, or put it next to <code>index.html</code> and it loads automatically.</p>
+      <div class="set-row">
+        <label>Max size
+          <select id="exportSize">
+            <option value="0">Original</option>
+            <option value="720">720px</option>
+            <option value="480" selected>480px</option>
+            <option value="360">360px</option>
+            <option value="240">240px</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="exportRanking"> Include my ranking</label>
+        <button class="primary" id="exportPack">Export pack</button>
+      </div>
+    </section>
+
+    <section>
+      <h3>Source links</h3>
+      <p class="hint" id="linkHint"></p>
+      <div class="set-row">
+        <input type="search" id="linkFilter" placeholder="Filter…">
+        <label><input type="checkbox" id="linkMissing"> Only show missing</label>
+      </div>
+      <div class="link-grid" id="linkGrid"></div>
+    </section>
+  </div>
+</dialog>
+
+<dialog id="viewer">
+  <div class="viewer-inner" id="viewerInner">
+    <img id="vImg" alt="">
+    <div class="viewer-bar">
+      <strong id="vName"></strong>
+      <span id="vSource"></span>
+      <a id="vFull" target="_blank" rel="noopener">Open in new tab ↗</a>
+    </div>
+  </div>
+  <button class="vbtn" id="vPrev" aria-label="Previous">‹</button>
+  <button class="vbtn" id="vNext" aria-label="Next">›</button>
+  <button id="vClose">Close ✕</button>
+</dialog>
+
+<div id="busy"><div id="busyText"></div><progress id="busyBar" max="1" value="0"></progress></div>
+
+<input type="file" id="folderInput" webkitdirectory directory multiple hidden>
+<input type="file" id="packInput" accept=".js,.json,.tierpack" hidden>
+
+<!-- Optional: a pack.js next to this page is loaded automatically -->
+<script src="pack.js"></script>
+<script>
+(function () {
+  const STORE = 'gif-tierlist:v2';
+  const IMG_RE = /\.(gif|png|apng|jpe?g|jfif|pjpeg|webp|avif|bmp|svg|ico|heic|heif|tiff?)$/i;
+  const VID_RE = /\.(mp4|m4v|webm|mov|mkv|ogv|ogg|avi|wmv|flv|3gp|mpe?g|ts)$/i;
+  const VIDEO_PRESETS = {
+    small:  { side: 240, delay: 100 },
+    medium: { side: 360, delay: 80 },
+    large:  { side: 480, delay: 60 },
+  };
+  const MAX_VIDEO_SECONDS = 30;
+  const DEFAULT_TIERS = [
+    ['S', '#ff7f7f'], ['A', '#ffbf7f'], ['B', '#ffdf7f'],
+    ['C', '#ffff7f'], ['D', '#bfff7f'], ['F', '#7fbfff'],
+  ];
+  const LINK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>';
+  const $ = (id) => document.getElementById(id);
+
+  // GIF libraries are only downloaded when converting/exporting, so viewing works offline.
+  const gifenc = () => import('https://cdn.jsdelivr.net/npm/gifenc@1.0.3/+esm');
+  const gifuct = () => import('https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/+esm');
+
+  let library = null;          // { origin, stamp, items: [{ id, key, kind, blob, poster, source }] }
+  let items = [];              // library items + object URLs
+  let byId = new Map();
+  let state = loadState();
+
+  // ---------- storage ----------
+  function defaultState() {
+    return {
+      title: 'GIF Tier List', size: 100, videoQuality: 'medium',
+      tiers: DEFAULT_TIERS.map(([name, color], i) => ({ id: 't' + i, name, color, items: [] })),
+      sources: {},             // links edited on the page, override the library's links
+    };
+  }
+  function loadState() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STORE));
+      if (s && Array.isArray(s.tiers)) return Object.assign(defaultState(), s);
+    } catch (e) {}
+    return defaultState();
+  }
+  function saveState() {
+    try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
+  }
+
+  const dbReady = new Promise((resolve) => {
+    try {
+      const req = indexedDB.open('gif-tierlist', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('kv');
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch (e) { resolve(null); }
+  });
+  async function kv(mode, key, value) {
+    const db = await dbReady;
+    if (!db) return undefined;
+    return new Promise((resolve) => {
+      try {
+        const store = db.transaction('kv', mode === 'get' ? 'readonly' : 'readwrite').objectStore('kv');
+        const req = mode === 'get' ? store.get(key) : store.put(value, key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(undefined);
+      } catch (e) { resolve(undefined); }
+    });
+  }
+
+  // ---------- helpers ----------
+  function prettyName(id) { return id.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim(); }
+  function sourceOf(id) {
+    if (Object.prototype.hasOwnProperty.call(state.sources, id)) return state.sources[id];
+    const it = byId.get(id);
+    return it ? it.source : '';
+  }
+  function linkify(url) {
+    url = (url || '').trim();
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url)) return url;
+    if (/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(url)) return 'https://' + url;
+    return '';
+  }
+  function hostOf(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return url; } }
+  function parseSources(text) {
+    const map = {};
+    text.split(/\r?\n/).forEach((line) => {
+      line = line.trim();
+      if (!line || line.startsWith('#')) return;
+      const i = line.indexOf('|');
+      if (i > 0) map[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+    });
+    return map;
+  }
+  function loadImg(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("can't decode"));
+      img.src = url;
+    });
+  }
+  function canvasBlob(canvas, type, quality) {
+    return new Promise((resolve) => canvas.toBlob((b) => resolve(b), type, quality));
+  }
+  async function stillBlob(canvas) {
+    const b = await canvasBlob(canvas, 'image/webp', 0.85);
+    return b && b.type === 'image/webp' ? b : canvasBlob(canvas, 'image/png');
+  }
+  function fitSize(w, h, side) {
+    const s = side ? Math.min(1, side / Math.max(w, h)) : 1;
+    return [Math.max(1, Math.round(w * s)), Math.max(1, Math.round(h * s))];
+  }
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result).split(',')[1] || '');
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(blob);
+    });
+  }
+  function base64ToBlob(b64, type) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type });
+  }
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+
+  function busy(text, frac) {
+    $('busy').style.display = 'block';
+    $('busyText').textContent = text;
+    const bar = $('busyBar');
+    if (frac == null) bar.removeAttribute('value'); else bar.value = frac;
+  }
+  let toastTimer = null;
+  function notify(text, ms) {
+    busy(text, 1);
+    $('busyBar').style.display = 'none';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(done, ms || 6000);
+  }
+  function done() { $('busy').style.display = 'none'; $('busyBar').style.display = ''; }
+
+  // ---------- media processing ----------
+  // Is this image animated? (GIF with 2+ frames, animated WebP, APNG)
+  async function isAnimated(file) {
+    const bytes = new Uint8Array(await file.slice(0, 512 * 1024).arrayBuffer());
+    const has = (str, limit) => {
+      const n = Math.min(bytes.length, limit || bytes.length) - str.length;
+      outer: for (let i = 0; i <= n; i++) {
+        for (let j = 0; j < str.length; j++) if (bytes[i + j] !== str.charCodeAt(j)) continue outer;
+        return true;
+      }
+      return false;
+    };
+    if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
+      // count image descriptors after graphic control extensions
+      let frames = 0;
+      for (let i = 0; i < bytes.length - 3; i++) {
+        if (bytes[i] === 0x21 && bytes[i + 1] === 0xF9 && bytes[i + 2] === 0x04) { if (++frames > 1) return true; }
+      }
+      return false;
+    }
+    if (has('WEBP', 16)) return has('ANIM', 4096);
+    if (bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return has('acTL');
+    return false;
+  }
+
+  async function processImage(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await loadImg(url);
+      if (!(await isAnimated(file))) return { kind: 'still', blob: file, poster: null };
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth || 300; c.height = img.naturalHeight || 300;
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      return { kind: 'anim', blob: file, poster: await stillBlob(c) };
+    } finally { URL.revokeObjectURL(url); }
+  }
+
+  function seekTo(video, t) {
+    return new Promise((resolve) => {
+      if (Math.abs(video.currentTime - t) < 0.0005 && video.readyState >= 2) return resolve();
+      const timer = setTimeout(finish, 5000);
+      function finish() { clearTimeout(timer); video.removeEventListener('seeked', finish); resolve(); }
+      video.addEventListener('seeked', finish);
+      video.currentTime = t;
+    });
+  }
+
+  async function videoToGif(file, preset, onProgress) {
+    const { GIFEncoder, quantize, applyPalette } = await gifenc();
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = url;
+    try {
+      await new Promise((resolve, reject) => {
+        const t = setTimeout(() => reject(new Error('timed out')), 20000);
+        v.onloadeddata = () => { clearTimeout(t); resolve(); };
+        v.onerror = () => { clearTimeout(t); reject(new Error("your browser can't play this video format")); };
+      });
+      if (!v.videoWidth) throw new Error('no video picture');
+      let duration = v.duration;
+      if (!isFinite(duration)) { await seekTo(v, 1e7); duration = isFinite(v.duration) ? v.duration : v.currentTime; }
+      const length = Math.min(duration || 0, MAX_VIDEO_SECONDS);
+      const [w, h] = fitSize(v.videoWidth, v.videoHeight, preset.side);
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      const step = preset.delay / 1000;
+      const count = Math.max(1, Math.floor(length / step));
+      const enc = GIFEncoder();
+      let poster = null;
+      for (let i = 0; i < count; i++) {
+        await seekTo(v, Math.min(i * step, Math.max(0, duration - 0.05)));
+        ctx.drawImage(v, 0, 0, w, h);
+        if (i === 0) poster = await stillBlob(c);
+        const { data } = ctx.getImageData(0, 0, w, h);
+        const palette = quantize(data, 256);
+        enc.writeFrame(applyPalette(data, palette), w, h, { palette, delay: preset.delay });
+        onProgress((i + 1) / count);
+        if (i % 3 === 0) await tick();
+      }
+      enc.finish();
+      return { kind: 'anim', blob: new Blob([enc.bytes()], { type: 'image/gif' }), poster, truncated: duration > MAX_VIDEO_SECONDS };
+    } finally {
+      v.removeAttribute('src'); v.load();
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  // Decode every frame of a GIF into full-size canvases.
+  async function decodeGif(blob) {
+    const { parseGIF, decompressFrames } = await gifuct();
+    const gif = parseGIF(await blob.arrayBuffer());
+    const raw = decompressFrames(gif, true);
+    const w = gif.lsd.width, h = gif.lsd.height;
+    const full = document.createElement('canvas');
+    full.width = w; full.height = h;
+    const fctx = full.getContext('2d', { willReadFrequently: true });
+    const patch = document.createElement('canvas');
+    const pctx = patch.getContext('2d');
+    const frames = [];
+    let prev = null, saved = null;
+    for (const f of raw) {
+      if (prev) {
+        const d = prev.dims;
+        if (prev.disposalType === 2) fctx.clearRect(d.left, d.top, d.width, d.height);
+        else if (prev.disposalType === 3 && saved) fctx.putImageData(saved, 0, 0);
+      }
+      if (f.disposalType === 3) saved = fctx.getImageData(0, 0, w, h);
+      const { width, height, left, top } = f.dims;
+      if (width > 0 && height > 0) {
+        patch.width = width; patch.height = height;
+        pctx.putImageData(new ImageData(new Uint8ClampedArray(f.patch), width, height), 0, 0);
+        fctx.drawImage(patch, left, top);
+      }
+      const snap = document.createElement('canvas');
+      snap.width = w; snap.height = h;
+      snap.getContext('2d').drawImage(full, 0, 0);
+      frames.push({ canvas: snap, delay: !f.delay || f.delay < 20 ? 100 : f.delay });
+      prev = f;
+    }
+    return { w, h, frames };
+  }
+
+  async function downscaleGif(blob, side, onProgress) {
+    const { GIFEncoder, quantize, applyPalette } = await gifenc();
+    const gif = await decodeGif(blob);
+    if (Math.max(gif.w, gif.h) <= side) return blob;
+    const [w, h] = fitSize(gif.w, gif.h, side);
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    const enc = GIFEncoder();
+    for (let i = 0; i < gif.frames.length; i++) {
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(gif.frames[i].canvas, 0, 0, w, h);
+      const { data } = ctx.getImageData(0, 0, w, h);
+      const palette = quantize(data, 256, { format: 'rgba4444', oneBitAlpha: true });
+      const index = applyPalette(data, palette, 'rgba4444');
+      const transparentIndex = palette.findIndex((p) => p[3] === 0);
+      enc.writeFrame(index, w, h, {
+        palette, delay: gif.frames[i].delay,
+        transparent: transparentIndex >= 0, transparentIndex: Math.max(0, transparentIndex),
+      });
+      onProgress && onProgress((i + 1) / gif.frames.length);
+      if (i % 3 === 0) await tick();
+    }
+    enc.finish();
+    const out = new Blob([enc.bytes()], { type: 'image/gif' });
+    return out.size < blob.size ? out : blob;
+  }
+
+  async function downscaleStill(blob, side) {
+    const url = URL.createObjectURL(blob);
+    try {
+      const img = await loadImg(url);
+      const iw = img.naturalWidth, ih = img.naturalHeight;
+      if (!iw || Math.max(iw, ih) <= side) return blob;
+      const [w, h] = fitSize(iw, ih, side);
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      const out = await stillBlob(c);
+      return out && out.size < blob.size ? out : blob;
+    } finally { URL.revokeObjectURL(url); }
+  }
+
+  // ---------- loading ----------
+  function useLibrary(lib) {
+    items.forEach((it) => { URL.revokeObjectURL(it.url); if (it.posterUrl) URL.revokeObjectURL(it.posterUrl); });
+    library = lib;
+    items = lib.items.map((it) => Object.assign({}, it, {
+      url: URL.createObjectURL(it.blob),
+      posterUrl: it.poster ? URL.createObjectURL(it.poster) : null,
+    }));
+    byId = new Map(items.map((it) => [it.id, it]));
+    render();
+  }
+
+  async function processFiles(files) {
+    files = [...files];
+    const srcFile = files.find((f) => f.name.toLowerCase() === 'sources.txt');
+    const fileSources = srcFile ? parseSources(await srcFile.text()) : {};
+    const media = files
+      .filter((f) => IMG_RE.test(f.name) || VID_RE.test(f.name) || /^(image|video)\//.test(f.type))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+    if (!media.length) { notify('No images or videos found in that folder.'); return; }
+
+    const quality = state.videoQuality in VIDEO_PRESETS ? state.videoQuality : 'medium';
+    const previous = new Map((library ? library.items : []).map((it) => [it.key, it]));
+    const used = new Set();
+    const out = [], skipped = [], truncated = [];
+
+    for (let n = 0; n < media.length; n++) {
+      const f = media[n];
+      const isVideo = VID_RE.test(f.name) || f.type.startsWith('video/');
+      const key = [f.name, f.size, f.lastModified, isVideo ? quality : ''].join('|');
+      const label = `(${n + 1}/${media.length}) ${f.name}`;
+      let result = previous.get(key);
+      if (!result) {
+        try {
+          if (isVideo) {
+            busy(`Converting video ${label}`, 0);
+            result = await videoToGif(f, VIDEO_PRESETS[quality], (p) => busy(`Converting video ${label}`, p));
+            if (result.truncated) truncated.push(f.name);
+          } else {
+            busy(`Loading ${label}`, n / media.length);
+            result = await processImage(f);
+          }
+        } catch (err) {
+          skipped.push(`${f.name} (${err.message})`);
+          continue;
+        }
+      }
+      let id = f.name, k = 2;
+      while (used.has(id)) id = f.name.replace(/(\.[^.]*)?$/, ` (${k++})$1`);
+      used.add(id);
+      out.push({ id, key, kind: result.kind, blob: result.blob, poster: result.poster, source: fileSources[f.name] || '' });
+    }
+
+    const lib = { origin: 'folder', stamp: Date.now(), items: out };
+    await kv('put', 'library', lib);
+    useLibrary(lib);
+    const msgs = [`Loaded ${out.length} item${out.length === 1 ? '' : 's'}.`];
+    if (truncated.length) msgs.push(`Cut to ${MAX_VIDEO_SECONDS}s: ${truncated.join(', ')}.`);
+    if (skipped.length) msgs.push(`Skipped: ${skipped.join('; ')}.`);
+    notify(msgs.join(' '), skipped.length ? 15000 : 5000);
+  }
+
+  async function readDirectory(dir) {
+    const files = [];
+    for await (const handle of dir.values()) {
+      if (handle.kind === 'file') files.push(await handle.getFile());
+      else files.push(...await readDirectory(handle));
+    }
+    return files;
+  }
+
+  async function loadFolder() {
+    if (window.showDirectoryPicker) {
+      try {
+        const dir = await window.showDirectoryPicker({ id: 'gif-tierlist', mode: 'read' });
+        await kv('put', 'dirHandle', dir);
+        $('rescan').hidden = false;
+        busy('Reading folder…');
+        return await processFiles(await readDirectory(dir));
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        // fall through to the classic folder picker
+      }
+    }
+    $('folderInput').click();
+  }
+
+  async function rescan() {
+    const dir = await kv('get', 'dirHandle');
+    if (!dir) return loadFolder();
+    try {
+      if ((await dir.requestPermission({ mode: 'read' })) !== 'granted') return;
+      busy('Reading folder…');
+      await processFiles(await readDirectory(dir));
+    } catch (err) {
+      notify("Couldn't open the last folder again. Use Load folder instead.");
+    }
+  }
+
+  // ---------- packs ----------
+  function hasRanking() { return state.tiers.some((t) => t.items.length); }
+
+  function applyPack(pack) {
+    const lib = {
+      origin: 'pack', stamp: pack.exportedAt || Date.now(),
+      items: (pack.items || []).map((p) => ({
+        id: p.id, key: 'pack|' + p.id, kind: p.kind === 'anim' ? 'anim' : 'still',
+        blob: base64ToBlob(p.data, p.mime || 'image/gif'),
+        poster: p.poster ? base64ToBlob(p.poster, p.posterMime || 'image/webp') : null,
+        source: p.source || '',
+      })),
+    };
+    // the pack's links win over links typed earlier for the same items
+    lib.items.forEach((it) => { delete state.sources[it.id]; });
+    if (pack.title) state.title = pack.title;
+    if (Array.isArray(pack.tiers) && pack.tiers.length && (pack.ranked || !hasRanking())) {
+      state.tiers = pack.tiers.map((t, i) => ({
+        id: t.id || 't' + i, name: t.name, color: t.color, items: pack.ranked ? (t.items || []).slice() : [],
+      }));
+    }
+    saveState();
+    kv('put', 'library', lib);
+    useLibrary(lib);
+  }
+
+  async function importPack(file) {
+    try {
+      busy(`Importing ${file.name}…`);
+      const text = await file.text();
+      const pack = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+      if (!pack || !Array.isArray(pack.items)) throw new Error('not a pack');
+      applyPack(pack);
+      notify(`Imported ${pack.items.length} items.`, 4000);
+    } catch (err) {
+      notify("That file isn't a tier list pack.");
+    }
+  }
+
+  async function exportPack() {
+    if (!items.length) return notify('Nothing to export yet.');
+    const side = +$('exportSize').value;
+    const ranked = $('exportRanking').checked;
+    $('exportPack').disabled = true;
+    try {
+      const out = [];
+      for (let n = 0; n < items.length; n++) {
+        const it = items[n];
+        const label = `Packing (${n + 1}/${items.length}) ${it.id}`;
+        busy(label, n / items.length);
+        let blob = it.blob, poster = it.poster;
+        if (side) {
+          if (it.kind === 'anim' && it.blob.type === 'image/gif') {
+            blob = await downscaleGif(it.blob, side, (p) => busy(label, (n + p) / items.length));
+          } else if (it.kind === 'still') {
+            blob = await downscaleStill(it.blob, side);
+          }
+          if (poster) poster = await downscaleStill(poster, side);
+        }
+        out.push({
+          id: it.id, source: sourceOf(it.id), kind: it.kind,
+          mime: blob.type || 'application/octet-stream', data: await blobToBase64(blob),
+          poster: poster ? await blobToBase64(poster) : null, posterMime: poster ? poster.type : null,
+        });
+        await tick();
+      }
+      const pack = {
+        format: 'gif-tierlist-pack', version: 1, title: state.title, exportedAt: Date.now(), ranked,
+        tiers: state.tiers.map((t) => ({ id: t.id, name: t.name, color: t.color, items: ranked ? t.items.filter((f) => byId.has(f)) : [] })),
+        items: out,
+      };
+      const text = '// GIF Tier List pack. Put this file next to index.html (named pack.js) to load it\n' +
+        '// automatically, or open index.html and use Settings > Import pack.\n' +
+        'window.TIERLIST_PACK = ' + JSON.stringify(pack) + ';\n';
+      const file = new Blob([text], { type: 'text/javascript' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(file); a.download = 'pack.js';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+      // keep your full-quality library even if this pack.js is put next to index.html
+      library.stamp = pack.exportedAt;
+      kv('put', 'library', library);
+      notify(`Exported pack.js (${(file.size / 1024 / 1024).toFixed(1)} MB, ${out.length} items).`, 8000);
+    } catch (err) {
+      console.error(err);
+      notify('Export failed: ' + err.message);
+    } finally {
+      $('exportPack').disabled = false;
+    }
+  }
+
+  // ---------- rendering ----------
+  function badge(id) {
+    const url = linkify(sourceOf(id));
+    if (!url) return null;
+    const a = document.createElement('a');
+    a.className = 'src-badge'; a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    a.title = 'Source: ' + hostOf(url);
+    a.innerHTML = LINK_ICON;
+    return a;
+  }
+
+  function mediaImg(it) {
+    const img = document.createElement('img');
+    img.src = it.posterUrl || it.url; img.alt = prettyName(it.id); img.loading = 'lazy'; img.draggable = false;
+    return img;
+  }
+
+  function makeItem(id) {
+    const it = byId.get(id);
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.dataset.file = id;
+    if (it.posterUrl) el.dataset.anim = '1';
+    el.title = prettyName(id);
+    el.appendChild(mediaImg(it));
+    const b = badge(id);
+    if (b) el.appendChild(b);
+    return el;
+  }
+
+  function render() {
+    stopPlaying();
+    $('title').textContent = state.title;
+    $('size').value = state.size;
+    $('videoQuality').value = state.videoQuality;
+    document.documentElement.style.setProperty('--item', state.size + 'px');
+    $('empty').hidden = items.length > 0;
+
+    const tiersEl = $('tiers');
+    tiersEl.innerHTML = '';
+    const placed = new Set();
+    state.tiers.forEach((tier, idx) => {
+      const row = document.createElement('div');
+      row.className = 'tier';
+      row.dataset.id = tier.id;
+
+      const label = document.createElement('div');
+      label.className = 'tier-label';
+      label.contentEditable = 'true';
+      label.spellcheck = false;
+      label.style.background = tier.color;
+      label.textContent = tier.name;
+      label.addEventListener('input', () => { tier.name = label.textContent; saveState(); });
+      label.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); label.blur(); } });
+
+      const zone = document.createElement('div');
+      zone.className = 'dropzone';
+      tier.items.forEach((f) => {
+        if (byId.has(f) && !placed.has(f)) { zone.appendChild(makeItem(f)); placed.add(f); }
+      });
+
+      const tools = document.createElement('div');
+      tools.className = 'tier-tools';
+      const color = document.createElement('input');
+      color.type = 'color'; color.value = tier.color; color.title = 'Tier color';
+      color.addEventListener('input', () => { tier.color = color.value; label.style.background = color.value; saveState(); });
+      tools.append(
+        color,
+        button('✕', 'Delete tier (items go back to Unranked)', () => {
+          if (!confirm(`Delete tier "${tier.name}"? Its items go back to Unranked.`)) return;
+          state.tiers.splice(idx, 1); saveState(); render();
+        }),
+        button('▲', 'Move tier up', () => moveTier(idx, -1)),
+        button('▼', 'Move tier down', () => moveTier(idx, 1)),
+      );
+
+      row.append(label, zone, tools);
+      tiersEl.appendChild(row);
+    });
+
+    const pool = $('pool');
+    pool.innerHTML = '';
+    items.forEach((it) => { if (!placed.has(it.id)) pool.appendChild(makeItem(it.id)); });
+
+    renderLinks();
+    renderLibInfo();
+    updateCounts();
+  }
+
+  function button(text, title, onClick) {
+    const b = document.createElement('button');
+    b.textContent = text; b.title = title; b.addEventListener('click', onClick);
+    return b;
+  }
+
+  function moveTier(idx, dir) {
+    const j = idx + dir;
+    if (j < 0 || j >= state.tiers.length) return;
+    [state.tiers[idx], state.tiers[j]] = [state.tiers[j], state.tiers[idx]];
+    saveState(); render();
+  }
+
+  function updateCounts() {
+    $('poolCount').textContent = items.length ? `(${$('pool').children.length} of ${items.length})` : '';
+  }
+
+  function renderLibInfo() {
+    if (!library || !items.length) { $('libInfo').textContent = 'Nothing loaded yet.'; return; }
+    const total = items.reduce((s, it) => s + it.blob.size, 0);
+    const from = library.origin === 'pack' ? 'a pack' : 'a folder';
+    $('libInfo').textContent = `${items.length} items loaded from ${from} (${(total / 1024 / 1024).toFixed(1)} MB). Saved in this browser, so it's still here next time.`;
+  }
+
+  function syncFromDom() {
+    document.querySelectorAll('.tier').forEach((row) => {
+      const tier = state.tiers.find((t) => t.id === row.dataset.id);
+      if (!tier) return;
+      const shown = [...row.querySelectorAll('.item')].map((el) => el.dataset.file);
+      const hidden = tier.items.filter((f) => !byId.has(f) && !shown.includes(f));
+      tier.items = shown.concat(hidden);
+    });
+    saveState();
+    updateCounts();
+  }
+
+  // ---------- source links (settings) ----------
+  function renderLinks() {
+    const grid = $('linkGrid');
+    grid.innerHTML = '';
+    const q = $('linkFilter').value.trim().toLowerCase();
+    const onlyMissing = $('linkMissing').checked;
+    let have = 0;
+    items.forEach((it) => {
+      const src = sourceOf(it.id);
+      if (linkify(src)) have++;
+      if (q && !(it.id.toLowerCase().includes(q) || src.toLowerCase().includes(q))) return;
+      if (onlyMissing && linkify(src)) return;
+
+      const card = document.createElement('div');
+      card.className = 'link-card';
+      const thumb = document.createElement('div');
+      thumb.className = 'thumb';
+      thumb.dataset.file = it.id;
+      if (it.posterUrl) thumb.dataset.anim = '1';
+      thumb.appendChild(mediaImg(it));
+      thumb.addEventListener('click', () => openViewer(it.id));
+      const name = document.createElement('div');
+      name.className = 'name'; name.textContent = prettyName(it.id); name.title = it.id;
+      const input = document.createElement('input');
+      input.type = 'url'; input.placeholder = 'Paste source link…'; input.value = src;
+      const status = document.createElement('div');
+      status.className = 'status';
+      const paint = () => {
+        const url = linkify(input.value);
+        card.classList.toggle('missing', !url);
+        status.innerHTML = '';
+        if (url) {
+          const a = document.createElement('a');
+          a.href = url; a.target = '_blank'; a.rel = 'noopener';
+          a.textContent = '🔗 ' + hostOf(url) + ' ↗';
+          status.appendChild(a);
+        } else {
+          status.textContent = input.value.trim() ? 'Not a valid link' : 'No source yet';
+        }
+      };
+      input.addEventListener('input', paint);
+      input.addEventListener('change', () => {
+        state.sources[it.id] = input.value.trim();
+        saveState();
+        refreshBadges(it.id);
+        updateLinkHint();
+      });
+      paint();
+      card.append(thumb, name, input, status);
+      grid.appendChild(card);
+    });
+    updateLinkHint(have);
+  }
+
+  function updateLinkHint(have) {
+    if (have === undefined) have = items.filter((it) => linkify(sourceOf(it.id))).length;
+    $('linkHint').textContent = items.length
+      ? `${have} of ${items.length} have a source. Paste a link under each one; it shows as a 🔗 on the item in the tier list.`
+      : 'Load a folder or import a pack first.';
+  }
+
+  function refreshBadges(id) {
+    document.querySelectorAll('.item').forEach((el) => {
+      if (el.dataset.file !== id) return;
+      const old = el.querySelector('.src-badge');
+      if (old) old.remove();
+      const b = badge(id);
+      if (b) el.appendChild(b);
+    });
+  }
+
+  // ---------- hover to play ----------
+  let playing = null;
+  function startPlaying(el) {
+    if (playing === el) return;
+    stopPlaying();
+    const it = byId.get(el.dataset.file);
+    const img = el.querySelector('img');
+    if (!it || !it.posterUrl || !img) return;
+    img.src = it.url;
+    playing = el;
+  }
+  function stopPlaying() {
+    if (!playing) return;
+    const it = byId.get(playing.dataset.file);
+    const img = playing.querySelector('img');
+    if (it && img && it.posterUrl) img.src = it.posterUrl;
+    playing = null;
+  }
+  document.addEventListener('pointerover', (e) => {
+    if (drag && drag.moved) return;
+    const el = e.target.closest('[data-anim]');
+    if (el) startPlaying(el); else stopPlaying();
+  });
+  document.documentElement.addEventListener('mouseleave', stopPlaying);
+
+  // ---------- viewer ----------
+  let viewIdx = 0;
+  function orderedIds() {
+    return [...document.querySelectorAll('#tiers .item, #pool .item')].map((el) => el.dataset.file);
+  }
+  function openViewer(id) {
+    viewIdx = Math.max(0, orderedIds().indexOf(id));
+    showViewer(id);
+    if (!$('viewer').open) $('viewer').showModal();
+  }
+  function showViewer(id) {
+    const it = byId.get(id);
+    if (!it) return;
+    $('vImg').src = it.url;
+    $('vName').textContent = prettyName(id);
+    $('vFull').href = it.url;
+    const url = linkify(sourceOf(id));
+    const box = $('vSource');
+    box.innerHTML = '';
+    if (url) {
+      const a = document.createElement('a');
+      a.href = url; a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = '🔗 Source: ' + hostOf(url) + ' ↗';
+      box.appendChild(a);
+    } else {
+      box.textContent = 'No source added';
+    }
+  }
+  function step(dir) {
+    const list = orderedIds();
+    if (!list.length) return;
+    viewIdx = (viewIdx + dir + list.length) % list.length;
+    showViewer(list[viewIdx]);
+  }
+  $('vPrev').addEventListener('click', () => step(-1));
+  $('vNext').addEventListener('click', () => step(1));
+  $('vClose').addEventListener('click', () => $('viewer').close());
+  $('viewer').addEventListener('close', () => { $('vImg').removeAttribute('src'); });
+  $('viewerInner').addEventListener('click', (e) => { if (e.target === $('viewerInner')) $('viewer').close(); });
+  document.addEventListener('keydown', (e) => {
+    if (!$('viewer').open) return;
+    if (e.key === 'ArrowLeft') step(-1);
+    if (e.key === 'ArrowRight') step(1);
+  });
+
+  // ---------- drag and drop (mouse + touch) ----------
+  let drag = null;
+  document.addEventListener('pointerdown', (e) => {
+    const el = e.target.closest('.item');
+    if (!el || e.button !== 0 || e.target.closest('.src-badge')) return;
+    e.preventDefault();
+    drag = { el, x: e.clientX, y: e.clientY, moved: false };
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    if (!drag.moved) {
+      if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
+      drag.moved = true;
+      stopPlaying();
+      const r = drag.el.getBoundingClientRect();
+      drag.offX = drag.x - r.left; drag.offY = drag.y - r.top;
+      drag.ghost = drag.el.cloneNode(true);
+      drag.ghost.classList.add('ghost');
+      drag.ghost.removeAttribute('data-anim');
+      drag.ghost.style.width = r.width + 'px'; drag.ghost.style.height = r.height + 'px';
+      document.body.appendChild(drag.ghost);
+      drag.el.classList.add('placeholder');
+    }
+    drag.ghost.style.transform = `translate(${e.clientX - drag.offX}px, ${e.clientY - drag.offY}px) scale(1.05)`;
+
+    const edge = 70;
+    if (e.clientY < edge) window.scrollBy(0, -14);
+    else if (e.clientY > window.innerHeight - edge) window.scrollBy(0, 14);
+
+    const zone = document.elementFromPoint(e.clientX, e.clientY)?.closest('.dropzone');
+    document.querySelectorAll('.dropzone.over').forEach((z) => z !== zone && z.classList.remove('over'));
+    if (!zone) return;
+    zone.classList.add('over');
+    let before = null;
+    for (const child of zone.children) {
+      if (child === drag.el) continue;
+      const r = child.getBoundingClientRect();
+      if (e.clientY < r.top || (e.clientY <= r.bottom && e.clientX < r.left + r.width / 2)) { before = child; break; }
+    }
+    if (before) { if (drag.el.nextSibling !== before) zone.insertBefore(drag.el, before); }
+    else if (zone.lastElementChild !== drag.el) zone.appendChild(drag.el);
+  });
+  function endDrag() {
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (d.moved) {
+      d.ghost.remove();
+      d.el.classList.remove('placeholder');
+      document.querySelectorAll('.dropzone.over').forEach((z) => z.classList.remove('over'));
+      syncFromDom();
+    } else {
+      openViewer(d.el.dataset.file);
+    }
+  }
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
+
+  // ---------- toolbar & settings wiring ----------
+  $('title').addEventListener('input', () => { state.title = $('title').textContent; saveState(); });
+  $('title').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('title').blur(); } });
+  $('size').addEventListener('input', () => {
+    state.size = +$('size').value;
+    document.documentElement.style.setProperty('--item', state.size + 'px');
+    saveState();
+  });
+  $('addTier').addEventListener('click', () => {
+    state.tiers.push({ id: 't' + Date.now(), name: 'New', color: '#c0c0c0', items: [] });
+    saveState(); render();
+  });
+  $('reset').addEventListener('click', () => {
+    if (!confirm('Move every item back to Unranked?')) return;
+    state.tiers.forEach((t) => { t.items = []; });
+    saveState(); render();
+  });
+  $('openSettings').addEventListener('click', () => { renderLinks(); $('settings').showModal(); });
+  $('closeSettings').addEventListener('click', () => $('settings').close());
+  $('settings').addEventListener('click', (e) => { if (e.target === $('settings')) $('settings').close(); });
+  document.querySelectorAll('[data-action="loadFolder"]').forEach((b) => b.addEventListener('click', loadFolder));
+  document.querySelectorAll('[data-action="importPack"]').forEach((b) => b.addEventListener('click', () => $('packInput').click()));
+  $('rescan').addEventListener('click', rescan);
+  $('folderInput').addEventListener('change', (e) => { if (e.target.files.length) processFiles(e.target.files); e.target.value = ''; });
+  $('packInput').addEventListener('change', (e) => { if (e.target.files[0]) importPack(e.target.files[0]); e.target.value = ''; });
+  $('videoQuality').addEventListener('change', () => { state.videoQuality = $('videoQuality').value; saveState(); });
+  $('exportPack').addEventListener('click', exportPack);
+  $('linkFilter').addEventListener('input', renderLinks);
+  $('linkMissing').addEventListener('change', renderLinks);
+
+  // ---------- start ----------
+  (async function start() {
+    render();
+    const stored = await kv('get', 'library');
+    const pack = window.TIERLIST_PACK;
+    if (pack && Array.isArray(pack.items) && (!stored || (pack.exportedAt || 0) > (stored.stamp || 0))) applyPack(pack);
+    else if (stored && Array.isArray(stored.items)) useLibrary(stored);
+    if (window.showDirectoryPicker && await kv('get', 'dirHandle')) $('rescan').hidden = false;
+  })();
+
+  window.tierList = { processFiles, importPack, exportPack, state: () => state }; // handy for debugging
+})();
+</script>
+</body>
+</html>

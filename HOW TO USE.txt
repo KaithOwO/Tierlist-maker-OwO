@@ -1,0 +1,27 @@
+GIF TIER LIST
+=============
+
+Adding your GIFs, images and videos
+  1. Put them in the "media" folder (or any folder you like).
+  2. Open index.html, click "Load folder" and pick that folder.
+     - Videos are converted to GIFs automatically (max 30 seconds each).
+     - Works with any image/video your browser can open: GIF, PNG, JPG, WebP, AVIF,
+       BMP, SVG, MP4, WebM, MOV and usually MKV. Files it can't read (e.g. AVI, WMV)
+       are skipped and listed in a message.
+  3. Added more files later? Settings > "Rescan last folder" (Chrome/Edge)
+     or just Load folder again. Already converted videos are reused.
+
+  Everything you load is saved in your browser, so it's still there next time.
+
+Adding sources
+  Settings > Source links: paste a link under each item. Items with a link get a
+  small link icon in the tier list; click it to open the source.
+  Optional: a "sources.txt" in the folder fills links in automatically, one per line:
+      funny-cat.gif | https://tenor.com/view/...
+
+Sharing (packs)
+  Settings > Export pack saves everything (media, links, tiers) into one "pack.js" file.
+  Pick a max size to make it smaller, and tick "Include my ranking" to share your ranking too.
+  - Send pack.js to someone: they open index.html and use "Import pack".
+  - Or put pack.js next to index.html, zip the folder and share that:
+    it loads automatically when index.html is opened.
