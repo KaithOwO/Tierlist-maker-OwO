@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GIF Tier List</title>
+<script>
+  // apply the saved light/dark choice before the page draws (dark by default)
+  try {
+    var saved = JSON.parse(localStorage.getItem('gif-tierlist:v2'));
+    document.documentElement.dataset.theme = (saved && saved.colorMode) || 'dark';
+  } catch (e) { document.documentElement.dataset.theme = 'dark'; }
+</script>
 <style>
   :root {
     --bg: #f4f4f5; --panel: #ffffff; --row: #fafafa; --text: #18181b; --muted: #71717a;
@@ -20,6 +27,8 @@
     --bg: #111113; --panel: #1b1b1f; --row: #232328; --text: #f4f4f5; --muted: #a1a1aa;
     --border: #2f2f36; --accent: #3b82f6; --accent-text: #ffffff; --link: #7ab0ff; --warn: #f59e0b;
   }
+  :root[data-theme="dark"] { color-scheme: dark; }
+  :root[data-theme="light"] { color-scheme: light; }
   * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
@@ -168,6 +177,7 @@
       <label class="size">Size <input type="range" id="size" min="50" max="200" step="5" value="100"></label>
       <button id="addTier">+ Tier</button>
       <button id="reset">Reset</button>
+      <button id="modeToggle" title="Switch between dark and light mode"></button>
       <button id="openSettings" class="primary">⚙ Settings</button>
     </div>
   </header>
@@ -219,7 +229,7 @@
 
     <section>
       <h3>Export pack</h3>
-      <p class="hint">Saves every item (with links and tiers) into one <code>pack.js</code> file. Send it to someone to use with <b>Import pack</b>, or put it next to <code>index.html</code> and it loads automatically.</p>
+      <p class="hint">Saves every item (with links and tiers) into one file. Send a <code>.tierpack</code> to someone to use with <b>Import pack</b>. A <code>pack.js</code> loads automatically when it's put next to <code>index.html</code> (on a website), but it's about a third bigger.</p>
       <div class="set-row">
         <label>Max size
           <select id="exportSize">
@@ -227,7 +237,21 @@
             <option value="720">720px</option>
             <option value="480" selected>480px</option>
             <option value="360">360px</option>
+            <option value="320">320px</option>
             <option value="240">240px</option>
+          </select>
+        </label>
+        <label>Frame rate
+          <select id="exportFps">
+            <option value="1">Full</option>
+            <option value="2">Half</option>
+            <option value="3">Third</option>
+          </select>
+        </label>
+        <label>Format
+          <select id="exportFormat">
+            <option value="tierpack">.tierpack (smaller, for sharing)</option>
+            <option value="js">pack.js (for a website)</option>
           </select>
         </label>
         <label><input type="checkbox" id="exportRanking"> Include my ranking</label>
@@ -296,9 +320,10 @@
   let state = loadState();
 
   // ---------- storage ----------
+  function tierColor(i) { return DEFAULT_TIERS[i] ? DEFAULT_TIERS[i][1] : '#c0c0c0'; }
   function defaultState() {
     return {
-      title: 'GIF Tier List', size: 100, videoQuality: 'medium',
+      title: 'GIF Tier List', size: 100, videoQuality: 'medium', colorMode: 'dark',
       tiers: DEFAULT_TIERS.map(([name, color], i) => ({ id: 't' + i, name, color, items: [] })),
       sources: {},             // links edited on the page, override the library's links
     };
@@ -306,7 +331,10 @@
   function loadState() {
     try {
       const s = JSON.parse(localStorage.getItem(STORE));
-      if (s && Array.isArray(s.tiers)) return Object.assign(defaultState(), s);
+      if (s && Array.isArray(s.tiers)) {
+        s.tiers.forEach((t, i) => { if (!t.color) t.color = tierColor(i); });
+        return Object.assign(defaultState(), s);
+      }
     } catch (e) {}
     return defaultState();
   }
@@ -533,16 +561,20 @@
     return { w, h, frames };
   }
 
-  async function downscaleGif(blob, side, onProgress) {
+  // side: max width/height (0 = keep). step: keep every step-th frame (2 = half the frame rate);
+  // kept frames stay on screen for as long as the frames they replace, so the speed is unchanged.
+  async function downscaleGif(blob, side, step, onProgress) {
     const { GIFEncoder, quantize, applyPalette } = await gifenc();
     const gif = await decodeGif(blob);
-    if (Math.max(gif.w, gif.h) <= side) return blob;
-    const [w, h] = fitSize(gif.w, gif.h, side);
+    if ((!side || Math.max(gif.w, gif.h) <= side) && step <= 1) return blob;
+    const [w, h] = side ? fitSize(gif.w, gif.h, side) : [gif.w, gif.h];
     const c = document.createElement('canvas');
     c.width = w; c.height = h;
     const ctx = c.getContext('2d', { willReadFrequently: true });
     const enc = GIFEncoder();
-    for (let i = 0; i < gif.frames.length; i++) {
+    for (let i = 0; i < gif.frames.length; i += step) {
+      let delay = 0;
+      for (let k = i; k < Math.min(i + step, gif.frames.length); k++) delay += gif.frames[k].delay;
       ctx.clearRect(0, 0, w, h);
       ctx.drawImage(gif.frames[i].canvas, 0, 0, w, h);
       const { data } = ctx.getImageData(0, 0, w, h);
@@ -550,7 +582,7 @@
       const index = applyPalette(data, palette, 'rgba4444');
       const transparentIndex = palette.findIndex((p) => p[3] === 0);
       enc.writeFrame(index, w, h, {
-        palette, delay: gif.frames[i].delay,
+        palette, delay,
         transparent: transparentIndex >= 0, transparentIndex: Math.max(0, transparentIndex),
       });
       onProgress && onProgress((i + 1) / gif.frames.length);
@@ -678,13 +710,49 @@
   // ---------- packs ----------
   function hasRanking() { return state.tiers.some((t) => t.items.length); }
 
+  // Compact pack (.tierpack), so large packs don't have to be held as one giant text:
+  //   "TLPACK1\n" | header length (uint32, little endian) | header JSON (UTF-8) | file bytes
+  // The header is a normal pack whose items say where their bytes are (at/size, posterAt/posterSize,
+  // counted from the start of the file bytes).
+  const PACK_MAGIC = 'TLPACK1\n';
+
+  async function readCompactPack(file) {
+    const len = new DataView(await file.slice(8, 12).arrayBuffer()).getUint32(0, true);
+    const pack = JSON.parse(await file.slice(12, 12 + len).text());
+    const base = 12 + len;
+    (pack.items || []).forEach((p) => {
+      p.blob = file.slice(base + p.at, base + p.at + p.size, p.mime || 'image/gif');
+      if (p.posterSize) p.poster = file.slice(base + p.posterAt, base + p.posterAt + p.posterSize, p.posterMime || 'image/webp');
+    });
+    return pack;
+  }
+
+  function writeCompactPack(pack, entries) {
+    const parts = [];
+    let at = 0;
+    const items = entries.map((e) => {
+      const item = { id: e.id, source: e.source, kind: e.kind, mime: e.blob.type || 'application/octet-stream', at, size: e.blob.size };
+      parts.push(e.blob); at += e.blob.size;
+      if (e.poster) {
+        Object.assign(item, { posterMime: e.poster.type, posterAt: at, posterSize: e.poster.size });
+        parts.push(e.poster); at += e.poster.size;
+      }
+      return item;
+    });
+    const header = new TextEncoder().encode(JSON.stringify(Object.assign({}, pack, { items })));
+    const len = new Uint8Array(4);
+    new DataView(len.buffer).setUint32(0, header.length, true);
+    return new Blob([PACK_MAGIC, len, header].concat(parts), { type: 'application/octet-stream' });
+  }
+
   function applyPack(pack) {
     const lib = {
       origin: 'pack', stamp: pack.exportedAt || Date.now(),
       items: (pack.items || []).map((p) => ({
         id: p.id, key: 'pack|' + p.id, kind: p.kind === 'anim' ? 'anim' : 'still',
-        blob: base64ToBlob(p.data, p.mime || 'image/gif'),
-        poster: p.poster ? base64ToBlob(p.poster, p.posterMime || 'image/webp') : null,
+        blob: p.blob instanceof Blob ? p.blob : base64ToBlob(p.data, p.mime || 'image/gif'),
+        poster: p.poster instanceof Blob ? p.poster
+          : p.poster ? base64ToBlob(p.poster, p.posterMime || 'image/webp') : null,
         source: p.source || '',
       })),
     };
@@ -693,7 +761,7 @@
     if (pack.title) state.title = pack.title;
     if (Array.isArray(pack.tiers) && pack.tiers.length && (pack.ranked || !hasRanking())) {
       state.tiers = pack.tiers.map((t, i) => ({
-        id: t.id || 't' + i, name: t.name, color: t.color, items: pack.ranked ? (t.items || []).slice() : [],
+        id: t.id || 't' + i, name: t.name, color: t.color || tierColor(i), items: pack.ranked ? (t.items || []).slice() : [],
       }));
     }
     saveState();
@@ -704,8 +772,13 @@
   async function importPack(file) {
     try {
       busy(`Importing ${file.name}…`);
-      const text = await file.text();
-      const pack = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+      let pack;
+      if ((await file.slice(0, PACK_MAGIC.length).text()) === PACK_MAGIC) {
+        pack = await readCompactPack(file);
+      } else {
+        const text = await file.text();
+        pack = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+      }
       if (!pack || !Array.isArray(pack.items)) throw new Error('not a pack');
       applyPack(pack);
       notify(`Imported ${pack.items.length} items.`, 4000);
@@ -717,47 +790,58 @@
   async function exportPack() {
     if (!items.length) return notify('Nothing to export yet.');
     const side = +$('exportSize').value;
+    const step = +$('exportFps').value || 1;
+    const compact = $('exportFormat').value === 'tierpack';
     const ranked = $('exportRanking').checked;
     $('exportPack').disabled = true;
     try {
-      const out = [];
+      const entries = [];
       for (let n = 0; n < items.length; n++) {
         const it = items[n];
         const label = `Packing (${n + 1}/${items.length}) ${it.id}`;
         busy(label, n / items.length);
         let blob = it.blob, poster = it.poster;
-        if (side) {
-          if (it.kind === 'anim' && it.blob.type === 'image/gif') {
-            blob = await downscaleGif(it.blob, side, (p) => busy(label, (n + p) / items.length));
-          } else if (it.kind === 'still') {
-            blob = await downscaleStill(it.blob, side);
-          }
-          if (poster) poster = await downscaleStill(poster, side);
+        if (it.kind === 'anim' && it.blob.type === 'image/gif' && (side || step > 1)) {
+          blob = await downscaleGif(it.blob, side, step, (p) => busy(label, (n + p) / items.length));
+        } else if (it.kind === 'still' && side) {
+          blob = await downscaleStill(it.blob, side);
         }
-        out.push({
-          id: it.id, source: sourceOf(it.id), kind: it.kind,
-          mime: blob.type || 'application/octet-stream', data: await blobToBase64(blob),
-          poster: poster ? await blobToBase64(poster) : null, posterMime: poster ? poster.type : null,
-        });
+        if (poster && side) poster = await downscaleStill(poster, side);
+        entries.push({ id: it.id, source: sourceOf(it.id), kind: it.kind, blob, poster });
         await tick();
       }
       const pack = {
         format: 'gif-tierlist-pack', version: 1, title: state.title, exportedAt: Date.now(), ranked,
         tiers: state.tiers.map((t) => ({ id: t.id, name: t.name, color: t.color, items: ranked ? t.items.filter((f) => byId.has(f)) : [] })),
-        items: out,
       };
-      const text = '// GIF Tier List pack. Put this file next to index.html (named pack.js) to load it\n' +
-        '// automatically, or open index.html and use Settings > Import pack.\n' +
-        'window.TIERLIST_PACK = ' + JSON.stringify(pack) + ';\n';
-      const file = new Blob([text], { type: 'text/javascript' });
+      let file, fileName;
+      if (compact) {
+        file = writeCompactPack(pack, entries);
+        fileName = 'pack.tierpack';
+      } else {
+        busy('Writing pack.js…');
+        pack.items = [];
+        for (const e of entries) {
+          pack.items.push({
+            id: e.id, source: e.source, kind: e.kind,
+            mime: e.blob.type || 'application/octet-stream', data: await blobToBase64(e.blob),
+            poster: e.poster ? await blobToBase64(e.poster) : null, posterMime: e.poster ? e.poster.type : null,
+          });
+        }
+        const text = '// GIF Tier List pack. Put this file next to index.html (named pack.js) to load it\n' +
+          '// automatically, or open index.html and use Settings > Import pack.\n' +
+          'window.TIERLIST_PACK = ' + JSON.stringify(pack) + ';\n';
+        file = new Blob([text], { type: 'text/javascript' });
+        fileName = 'pack.js';
+      }
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(file); a.download = 'pack.js';
+      a.href = URL.createObjectURL(file); a.download = fileName;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 60000);
       // keep your full-quality library even if this pack.js is put next to index.html
       library.stamp = pack.exportedAt;
       kv('put', 'library', library);
-      notify(`Exported pack.js (${(file.size / 1024 / 1024).toFixed(1)} MB, ${out.length} items).`, 8000);
+      notify(`Exported ${fileName} (${(file.size / 1024 / 1024).toFixed(1)} MB, ${entries.length} items).`, 8000);
     } catch (err) {
       console.error(err);
       notify('Export failed: ' + err.message);
@@ -1106,6 +1190,17 @@
     state.tiers.forEach((t) => { t.items = []; });
     saveState(); render();
   });
+  function applyColorMode() {
+    const dark = state.colorMode !== 'light';
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    $('modeToggle').textContent = dark ? '☀️ Light' : '🌙 Dark';
+  }
+  $('modeToggle').addEventListener('click', () => {
+    state.colorMode = state.colorMode === 'light' ? 'dark' : 'light';
+    saveState();
+    applyColorMode();
+  });
+  applyColorMode();
   $('openSettings').addEventListener('click', () => { renderLinks(); $('settings').showModal(); });
   $('closeSettings').addEventListener('click', () => $('settings').close());
   $('settings').addEventListener('click', (e) => { if (e.target === $('settings')) $('settings').close(); });
