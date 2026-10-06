@@ -151,6 +151,12 @@
   #viewer a { color: #8cc0ff; font-weight: 600; text-decoration: none; }
   #viewer a:hover { text-decoration: underline; }
   .viewer-bar span { color: #aaa; }
+  #vDelete { background: rgba(239,68,68,.18); color: #fca5a5; border: 1px solid rgba(239,68,68,.45); padding: 6px 12px; }
+  #vDelete:hover { background: #dc2626; color: #fff; }
+  .link-card .card-tools { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-width: 0; }
+  .link-card .card-tools .status { flex: 1; }
+  .link-card .delete { padding: 2px 8px; font-size: 12px; color: #ef4444; flex: none; }
+  .link-card .delete:hover { background: #dc2626; border-color: #dc2626; color: #fff; }
   .vbtn { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,.12); color: #fff; border: 0; font-size: 22px; padding: 10px 14px; }
   #vPrev { left: 12px; } #vNext { right: 12px; }
   #vClose { position: fixed; top: 12px; right: 12px; background: rgba(255,255,255,.12); color: #fff; border: 0; }
@@ -278,6 +284,7 @@
       <strong id="vName"></strong>
       <span id="vSource"></span>
       <a id="vFull" target="_blank" rel="noopener">Open in new tab ↗</a>
+      <button id="vDelete" class="danger" title="Remove this item from the tier list">🗑 Delete</button>
     </div>
   </div>
   <button class="vbtn" id="vPrev" aria-label="Previous">‹</button>
@@ -850,6 +857,26 @@
     }
   }
 
+  // ---------- deleting ----------
+  // Removes an item from the library (and any tier). Export a pack afterwards to share the change.
+  async function deleteItem(id) {
+    const it = byId.get(id);
+    if (!it || !confirm(`Delete "${prettyName(id)}" from this tier list?\n\nExport a pack afterwards to save the updated pack.`)) return false;
+    if (playing && playing.dataset.file === id) stopPlaying();
+    URL.revokeObjectURL(it.url);
+    if (it.posterUrl) URL.revokeObjectURL(it.posterUrl);
+    library.items = library.items.filter((x) => x.id !== id);
+    items = items.filter((x) => x.id !== id);
+    byId.delete(id);
+    state.tiers.forEach((t) => { t.items = t.items.filter((f) => f !== id); });
+    delete state.sources[id];
+    saveState();
+    await kv('put', 'library', library);
+    render();
+    notify(`Deleted ${prettyName(id)}. ${items.length} item${items.length === 1 ? '' : 's'} left.`, 4000);
+    return true;
+  }
+
   // ---------- rendering ----------
   function badge(id) {
     const url = linkify(sourceOf(id));
@@ -1023,7 +1050,13 @@
         updateLinkHint();
       });
       paint();
-      card.append(thumb, name, input, status);
+      const del = document.createElement('button');
+      del.className = 'delete'; del.textContent = '🗑'; del.title = 'Delete from the tier list';
+      del.addEventListener('click', () => deleteItem(it.id));
+      const tools = document.createElement('div');
+      tools.className = 'card-tools';
+      tools.append(status, del);
+      card.append(thumb, name, input, tools);
       grid.appendChild(card);
     });
     updateLinkHint(have);
@@ -1081,9 +1114,11 @@
     showViewer(id);
     if (!$('viewer').open) $('viewer').showModal();
   }
+  let viewId = null;
   function showViewer(id) {
     const it = byId.get(id);
     if (!it) return;
+    viewId = id;
     $('vImg').src = it.url;
     $('vName').textContent = prettyName(id);
     $('vFull').href = it.url;
@@ -1108,6 +1143,17 @@
   $('vPrev').addEventListener('click', () => step(-1));
   $('vNext').addEventListener('click', () => step(1));
   $('vClose').addEventListener('click', () => $('viewer').close());
+  $('vDelete').addEventListener('click', async () => {
+    if (!viewId) return;
+    const list = orderedIds();
+    const at = list.indexOf(viewId);
+    if (!(await deleteItem(viewId))) return;
+    // show the next one (or close when nothing is left)
+    const rest = orderedIds();
+    if (!rest.length) { $('viewer').close(); return; }
+    viewIdx = Math.min(Math.max(at, 0), rest.length - 1);
+    showViewer(rest[viewIdx]);
+  });
   $('viewer').addEventListener('close', () => { $('vImg').removeAttribute('src'); });
   $('viewerInner').addEventListener('click', (e) => { if (e.target === $('viewerInner')) $('viewer').close(); });
   document.addEventListener('keydown', (e) => {
